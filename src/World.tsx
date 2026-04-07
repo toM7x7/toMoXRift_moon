@@ -2,7 +2,7 @@ import { CuboidCollider, RigidBody } from '@react-three/rapier'
 import { SpawnPoint } from '@xrift/world-components'
 import { EquatorDeck } from './components/EquatorDeck'
 import { MoonExhibit } from './components/MoonExhibit'
-import { Starfield } from './components/Starfield'
+import { SpaceBackdrop } from './components/SpaceBackdrop'
 import {
   PHYSICS_GROUND_HEIGHT,
   PHYSICS_GROUND_SIZE,
@@ -19,11 +19,13 @@ export function World({
   position = [0, 0, 0],
   scale = 1,
 }: WorldProps) {
+  const showSpawnPoint = !import.meta.env.DEV
+
   return (
     <group position={position} scale={scale}>
       <color attach="background" args={[WORLD_COLORS.background]} />
 
-      <Starfield worldPosition={position} worldScale={scale} />
+      <SpaceBackdrop worldPosition={position} worldScale={scale} />
 
       <ambientLight intensity={0.22} />
       <hemisphereLight
@@ -51,7 +53,7 @@ export function World({
         color={WORLD_COLORS.rim}
       />
 
-      <SpawnPoint position={WORLD_SPAWN_POINT} yaw={0} />
+      {showSpawnPoint ? <SpawnPoint position={WORLD_SPAWN_POINT} yaw={0} /> : null}
 
       <RigidBody type="fixed" colliders={false} friction={1} restitution={0}>
         <CuboidCollider

@@ -1,122 +1,191 @@
 import { CuboidCollider, CylinderCollider, RigidBody } from '@react-three/rapier'
 import { useMemo } from 'react'
+import { ExtrudeGeometry, Path, Shape } from 'three'
 import {
-  MOON_DECK_RADIUS,
-  MOON_DECK_SEGMENTS,
-  MOON_DECK_WIDTH,
+  MOON_DECK_HEIGHT,
+  MOON_MAIN_DECK_CENTER_RADIUS,
+  MOON_MAIN_DECK_COLLIDER_OVERLAP,
+  MOON_MAIN_DECK_COLLIDER_SEGMENTS,
+  MOON_MAIN_DECK_INNER_RADIUS,
+  MOON_MAIN_DECK_OUTER_VISIBLE_RADIUS,
   MOON_DECK_Y,
   MOON_EXHIBIT_POSITION,
+  MOON_SUPPORT_RADIUS,
+  MOON_UPPER_RING_HEIGHT,
+  MOON_DECK_SEGMENTS,
+  MOON_UPPER_RING_RADIUS,
+  MOON_UPPER_RING_WIDTH,
+  MOON_UPPER_RING_Y,
   WORLD_COLORS,
 } from '../../constants'
 
-const DECK_HEIGHT = 0.34
-const SEGMENT_LENGTH = ((Math.PI * 2 * MOON_DECK_RADIUS) / MOON_DECK_SEGMENTS) * 0.88
-const SUPPORT_RADIUS = 0.28
+const MAIN_DECK_WIDTH = MOON_MAIN_DECK_OUTER_VISIBLE_RADIUS - MOON_MAIN_DECK_INNER_RADIUS
 const SUPPORT_POINTS = [
-  [0, MOON_EXHIBIT_POSITION[2] + MOON_DECK_RADIUS],
-  [MOON_DECK_RADIUS, MOON_EXHIBIT_POSITION[2]],
-  [0, MOON_EXHIBIT_POSITION[2] - MOON_DECK_RADIUS],
-  [-MOON_DECK_RADIUS, MOON_EXHIBIT_POSITION[2]],
+  [0, MOON_EXHIBIT_POSITION[2] + MOON_MAIN_DECK_CENTER_RADIUS],
+  [MOON_MAIN_DECK_CENTER_RADIUS, MOON_EXHIBIT_POSITION[2]],
+  [0, MOON_EXHIBIT_POSITION[2] - MOON_MAIN_DECK_CENTER_RADIUS],
+  [-MOON_MAIN_DECK_CENTER_RADIUS, MOON_EXHIBIT_POSITION[2]],
 ] as const
 
-function createDeckSegments() {
-  return Array.from({ length: MOON_DECK_SEGMENTS }, (_, index) => {
-    const angle = (index / MOON_DECK_SEGMENTS) * Math.PI * 2
-    const x = Math.sin(angle) * MOON_DECK_RADIUS
-    const z = MOON_EXHIBIT_POSITION[2] + Math.cos(angle) * MOON_DECK_RADIUS
+function createRingSegments(
+  radius: number,
+  surfaceY: number,
+  height: number,
+  segmentCount: number,
+) {
+  return Array.from({ length: segmentCount }, (_, index) => {
+    const angle = (index / segmentCount) * Math.PI * 2
+    const x = Math.sin(angle) * radius
+    const z = MOON_EXHIBIT_POSITION[2] + Math.cos(angle) * radius
 
     return {
       index,
       angle,
-      position: [x, MOON_DECK_Y - DECK_HEIGHT / 2, z] as [number, number, number],
+      position: [x, surfaceY - height / 2, z] as [number, number, number],
     }
   })
 }
 
+function getSegmentLength(radius: number, segmentCount: number, overlap: number = 1) {
+  return ((Math.PI * 2 * radius) / segmentCount) * overlap
+}
+
+function createDeckPlateGeometry(innerRadius: number, outerRadius: number, height: number) {
+  const shape = new Shape()
+  shape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false)
+
+  const hole = new Path()
+  hole.absarc(0, 0, innerRadius, 0, Math.PI * 2, true)
+  shape.holes.push(hole)
+
+  const geometry = new ExtrudeGeometry(shape, {
+    depth: height,
+    bevelEnabled: false,
+    curveSegments: 128,
+  })
+
+  geometry.translate(0, 0, -height / 2)
+  geometry.rotateX(Math.PI / 2)
+  geometry.computeVertexNormals()
+
+  return geometry
+}
+
 export function EquatorDeck() {
-  const segments = useMemo(createDeckSegments, [])
+  const mainSegments = useMemo(
+    () =>
+      createRingSegments(
+        MOON_MAIN_DECK_CENTER_RADIUS,
+        MOON_DECK_Y,
+        MOON_DECK_HEIGHT,
+        MOON_MAIN_DECK_COLLIDER_SEGMENTS,
+      ),
+    [],
+  )
+  const upperSegments = useMemo(
+    () =>
+      createRingSegments(
+        MOON_UPPER_RING_RADIUS,
+        MOON_UPPER_RING_Y,
+        MOON_UPPER_RING_HEIGHT,
+        MOON_DECK_SEGMENTS,
+      ),
+    [],
+  )
+  const mainSegmentLength = useMemo(
+    () =>
+      getSegmentLength(
+        MOON_MAIN_DECK_CENTER_RADIUS,
+        MOON_MAIN_DECK_COLLIDER_SEGMENTS,
+        MOON_MAIN_DECK_COLLIDER_OVERLAP,
+      ),
+    [],
+  )
+  const upperSegmentLength = useMemo(
+    () => getSegmentLength(MOON_UPPER_RING_RADIUS, MOON_DECK_SEGMENTS, 0.96),
+    [],
+  )
+  const deckPlateGeometry = useMemo(
+    () =>
+      createDeckPlateGeometry(
+        MOON_MAIN_DECK_INNER_RADIUS,
+        MOON_MAIN_DECK_OUTER_VISIBLE_RADIUS,
+        MOON_DECK_HEIGHT,
+      ),
+    [],
+  )
 
   return (
     <group>
-      <RigidBody type="fixed" colliders={false} friction={1.1} restitution={0}>
-        {segments.map((segment) => (
+      <RigidBody type="fixed" colliders={false} friction={1.15} restitution={0}>
+        {mainSegments.map((segment) => (
           <group
-            key={`deck-segment-${segment.index}`}
+            key={`main-ring-segment-${segment.index}`}
             position={segment.position}
             rotation={[0, segment.angle, 0]}
           >
-            <CuboidCollider args={[MOON_DECK_WIDTH / 2, DECK_HEIGHT / 2, SEGMENT_LENGTH / 2]} />
-            <mesh castShadow receiveShadow>
-              <boxGeometry args={[MOON_DECK_WIDTH, DECK_HEIGHT, SEGMENT_LENGTH]} />
-              <meshStandardMaterial
-                color={WORLD_COLORS.platform}
-                emissive={WORLD_COLORS.panelGlow}
-                emissiveIntensity={segment.index === 0 ? 0.2 : 0.06}
-                roughness={0.88}
-                metalness={0.14}
-              />
-            </mesh>
+            <CuboidCollider
+              args={[mainSegmentLength / 2, MOON_DECK_HEIGHT / 2, MAIN_DECK_WIDTH / 2]}
+            />
           </group>
         ))}
       </RigidBody>
 
-      <mesh position={[0, MOON_DECK_Y - 0.02, MOON_EXHIBIT_POSITION[2]]} rotation={[-Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[MOON_DECK_RADIUS, MOON_DECK_WIDTH * 0.34, 16, 96]} />
+      <mesh
+        geometry={deckPlateGeometry}
+        position={[0, MOON_DECK_Y, MOON_EXHIBIT_POSITION[2]]}
+        castShadow
+        receiveShadow
+      >
         <meshStandardMaterial
-          color={WORLD_COLORS.platformTrim}
+          color={WORLD_COLORS.platform}
           emissive={WORLD_COLORS.panelGlow}
-          emissiveIntensity={0.15}
-          roughness={0.48}
+          emissiveIntensity={0.04}
+          roughness={0.74}
           metalness={0.18}
         />
       </mesh>
 
-      <mesh position={[0, MOON_DECK_Y + 0.02, MOON_EXHIBIT_POSITION[2]]} rotation={[-Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[MOON_DECK_RADIUS, MOON_DECK_WIDTH * 0.12, 10, 96]} />
-        <meshStandardMaterial
-          color={WORLD_COLORS.accent}
-          emissive={WORLD_COLORS.accent}
-          emissiveIntensity={0.18}
-          roughness={0.4}
-          metalness={0.12}
-        />
-      </mesh>
-
       {SUPPORT_POINTS.map(([x, z], index) => {
-        const height = Math.max(MOON_DECK_Y, 0.1)
+        const height = Math.max(MOON_DECK_Y - MOON_DECK_HEIGHT / 2, 0.1)
+
         return (
           <RigidBody key={`support-${index}`} type="fixed" colliders={false}>
             <CylinderCollider
-              args={[height / 2, SUPPORT_RADIUS]}
+              args={[height / 2, MOON_SUPPORT_RADIUS]}
               position={[x, height / 2, z]}
             />
             <mesh position={[x, height / 2, z]} castShadow receiveShadow>
-              <cylinderGeometry args={[SUPPORT_RADIUS, SUPPORT_RADIUS * 1.2, height, 18]} />
+              <cylinderGeometry
+                args={[MOON_SUPPORT_RADIUS, MOON_SUPPORT_RADIUS * 1.18, height, 18]}
+              />
               <meshStandardMaterial
-                color="#2a3241"
-                roughness={0.82}
-                metalness={0.2}
+                color={WORLD_COLORS.panel}
+                roughness={0.84}
+                metalness={0.22}
               />
             </mesh>
           </RigidBody>
         )
       })}
 
-      <mesh
-        position={[0, MOON_DECK_Y - 0.28, MOON_EXHIBIT_POSITION[2] - MOON_DECK_RADIUS]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
-        <ringGeometry args={[0.56, 0.96, 32]} />
-        <meshStandardMaterial
-          color={WORLD_COLORS.accent}
-          emissive={WORLD_COLORS.accent}
-          emissiveIntensity={0.22}
-          transparent
-          opacity={0.9}
-          roughness={0.3}
-          metalness={0.04}
-        />
-      </mesh>
+      <RigidBody type="fixed" colliders={false} friction={0.95} restitution={0}>
+        {upperSegments.map((segment) => (
+          <group
+            key={`upper-ring-segment-${segment.index}`}
+            position={segment.position}
+            rotation={[0, segment.angle, 0]}
+          >
+            <CuboidCollider
+              args={[
+                upperSegmentLength / 2,
+                MOON_UPPER_RING_HEIGHT / 2,
+                MOON_UPPER_RING_WIDTH / 2,
+              ]}
+            />
+          </group>
+        ))}
+      </RigidBody>
     </group>
   )
 }

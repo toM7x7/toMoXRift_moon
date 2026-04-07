@@ -1,6 +1,6 @@
 # Luna Atlas
 
-Shared XRift moon observatory with a central lunar model, an equator-line viewing deck, synchronized model rotation/scale, and a procedural starfield.
+Shared XRift moon observatory with a central lunar model, dual equator ring walkways, synchronized model rotation/scale, and a NASA-backed space backdrop.
 
 ## Local Development
 
@@ -22,7 +22,9 @@ npm run build
 - Drag the moon directly to rotate it.
 - Use the mouse wheel to scale the moon.
 - Arrow keys also rotate the shared moon, and `-` / `=` scale it without any in-world UI.
+- Vertical drag and the up/down keys now follow the same "push the sphere" direction.
 - Rotation and scale are synchronized through XRift instance state for multiplayer sessions.
+- The moon now has a physical collider, so close fly-bys and jump landings can make contact with the model.
 
 ## Texture Workflow
 
@@ -40,6 +42,8 @@ npm run build
 - Scientist: Noah Petro (NASA/GSFC).
 - Datasets used: LRO LOLA DEM and LROC WAC Color Mosaic (Natural Color Hapke Normalized WAC Mosaic).
 - The NASA source maps are optimized for aesthetics, not scientific analysis.
+- Space backdrop source: NASA SVS `An Elsewhere Starfield` (ID 4856), released September 9, 2020.
+- `An Elsewhere Starfield` visualizers: Ernie Wright (USRA) and Tom Bridgman (Global Science and Technology, Inc.).
 
 ## Upload To XRift
 

@@ -1,7 +1,8 @@
 import type { ThreeEvent } from '@react-three/fiber'
 import { useFrame } from '@react-three/fiber'
-import { useInstanceState } from '@xrift/world-components'
-import { useEffect, useRef } from 'react'
+import { BallCollider, RigidBody } from '@react-three/rapier'
+import { Interactable, useInstanceState } from '@xrift/world-components'
+import { useRef } from 'react'
 import { type Group, Euler, MathUtils, Quaternion, Vector3 } from 'three'
 import {
   DEFAULT_MOON_TRANSFORM,
@@ -16,6 +17,7 @@ import {
   MOON_INTERACTION_SCALE_SPEED,
   MOON_MAX_SCALE,
   MOON_MIN_SCALE,
+  MOON_MODEL_RADIUS,
   MOON_ROTATION_STEP,
   MOON_SHARED_STATE_ID,
   OBSERVATION_RING_HEIGHT,
@@ -51,6 +53,7 @@ const EULER_SCRATCH = new Euler()
 const QUATERNION_SCRATCH = new Quaternion()
 const MIN_PITCH = -Math.PI * 0.42
 const MAX_PITCH = Math.PI * 0.42
+const CONTROL_ZONE_DEPTH = 0.14
 
 function mergeMoonState(initialState?: Partial<MoonTransformState>) {
   return {
@@ -156,6 +159,7 @@ export function MoonExhibit({
   )
   const rootRef = useRef<Group>(null)
   const moonRigRef = useRef<Group>(null)
+  const interactionRigRef = useRef<Group>(null)
   const currentPositionRef = useRef(new Vector3())
   const currentQuaternionRef = useRef(new Quaternion())
   const currentScaleRef = useRef(1)
@@ -166,69 +170,6 @@ export function MoonExhibit({
     lastX: 0,
     lastY: 0,
   })
-
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.repeat) {
-        return
-      }
-
-      if (event.key === 'ArrowUp') {
-        setSharedState((prev) => ({
-          ...prev,
-          rotationX: MathUtils.clamp(prev.rotationX - MOON_ROTATION_STEP, MIN_PITCH, MAX_PITCH),
-          offsetX: 0,
-          offsetY: 0,
-        }))
-      } else if (event.key === 'ArrowDown') {
-        setSharedState((prev) => ({
-          ...prev,
-          rotationX: MathUtils.clamp(prev.rotationX + MOON_ROTATION_STEP, MIN_PITCH, MAX_PITCH),
-          offsetX: 0,
-          offsetY: 0,
-        }))
-      } else if (event.key === 'ArrowLeft') {
-        setSharedState((prev) => ({
-          ...prev,
-          rotationY: prev.rotationY - MOON_ROTATION_STEP,
-          offsetX: 0,
-          offsetY: 0,
-        }))
-      } else if (event.key === 'ArrowRight') {
-        setSharedState((prev) => ({
-          ...prev,
-          rotationY: prev.rotationY + MOON_ROTATION_STEP,
-          offsetX: 0,
-          offsetY: 0,
-        }))
-      } else if (event.key === '-' || event.key === '_') {
-        setSharedState((prev) => ({
-          ...prev,
-          scale: clampMoonScale(prev.scale - 0.08),
-          offsetX: 0,
-          offsetY: 0,
-        }))
-      } else if (event.key === '=' || event.key === '+') {
-        setSharedState((prev) => ({
-          ...prev,
-          scale: clampMoonScale(prev.scale + 0.08),
-          offsetX: 0,
-          offsetY: 0,
-        }))
-      } else {
-        return
-      }
-
-      event.preventDefault()
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      document.body.style.cursor = ''
-    }
-  }, [])
 
   function finishDrag() {
     dragStateRef.current.active = false
@@ -267,7 +208,7 @@ export function MoonExhibit({
     setSharedState((prev) => ({
       ...prev,
       rotationX: MathUtils.clamp(
-        prev.rotationX + dy * MOON_INTERACTION_ROTATE_SPEED,
+        prev.rotationX - dy * MOON_INTERACTION_ROTATE_SPEED,
         MIN_PITCH,
         MAX_PITCH,
       ),
@@ -312,9 +253,71 @@ export function MoonExhibit({
     }))
   }
 
-  useFrame(({ clock }, delta) => {
+  const colliderRadius = MOON_MODEL_RADIUS * clampMoonScale(sharedState.scale)
+  const controlShellDistance = Math.max(colliderRadius + 1.25, 4.1)
+  const largeControlWidth = colliderRadius * 1.1
+  const largeControlHeight = colliderRadius * 0.62
+  const sideControlWidth = colliderRadius * 0.58
+  const sideControlHeight = colliderRadius * 1.08
+  const cornerControlSize = colliderRadius * 0.46
+
+  function updateSharedState(update: (prev: MoonTransformState) => MoonTransformState) {
+    setSharedState((prev) => {
+      const next = update(prev)
+      return {
+        ...next,
+        offsetX: 0,
+        offsetY: 0,
+      }
+    })
+  }
+
+  function rotateMoonUp() {
+    updateSharedState((prev) => ({
+      ...prev,
+      rotationX: MathUtils.clamp(prev.rotationX + MOON_ROTATION_STEP, MIN_PITCH, MAX_PITCH),
+    }))
+  }
+
+  function rotateMoonDown() {
+    updateSharedState((prev) => ({
+      ...prev,
+      rotationX: MathUtils.clamp(prev.rotationX - MOON_ROTATION_STEP, MIN_PITCH, MAX_PITCH),
+    }))
+  }
+
+  function rotateMoonLeft() {
+    updateSharedState((prev) => ({
+      ...prev,
+      rotationY: prev.rotationY - MOON_ROTATION_STEP,
+    }))
+  }
+
+  function rotateMoonRight() {
+    updateSharedState((prev) => ({
+      ...prev,
+      rotationY: prev.rotationY + MOON_ROTATION_STEP,
+    }))
+  }
+
+  function scaleMoonUp() {
+    updateSharedState((prev) => ({
+      ...prev,
+      scale: clampMoonScale(prev.scale + 0.08),
+    }))
+  }
+
+  function scaleMoonDown() {
+    updateSharedState((prev) => ({
+      ...prev,
+      scale: clampMoonScale(prev.scale - 0.08),
+    }))
+  }
+
+  useFrame(({ camera, clock }, delta) => {
     const root = rootRef.current
     const moonRig = moonRigRef.current
+    const interactionRig = interactionRigRef.current
     if (!root || !moonRig) return
 
     const floatOffset =
@@ -353,6 +356,10 @@ export function MoonExhibit({
       delta,
     )
     moonRig.scale.setScalar(currentScaleRef.current)
+
+    if (interactionRig) {
+      interactionRig.quaternion.copy(camera.quaternion)
+    }
   })
 
   return (
@@ -394,6 +401,84 @@ export function MoonExhibit({
           </mesh>
         </group>
       ) : null}
+
+      <RigidBody
+        type="fixed"
+        colliders={false}
+        position={DEFAULT_CLOSE_VIEW_OFFSET}
+        restitution={0}
+        friction={1}
+      >
+        <BallCollider args={[colliderRadius]} />
+      </RigidBody>
+
+      <group ref={interactionRigRef} position={DEFAULT_CLOSE_VIEW_OFFSET}>
+        <Interactable
+          id="moon-tilt-up"
+          interactionText="月を上へ回す"
+          onInteract={rotateMoonUp}
+        >
+          <mesh position={[0, colliderRadius * 0.7, -controlShellDistance]}>
+            <boxGeometry args={[largeControlWidth, largeControlHeight, CONTROL_ZONE_DEPTH]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+        </Interactable>
+
+        <Interactable
+          id="moon-tilt-down"
+          interactionText="月を下へ回す"
+          onInteract={rotateMoonDown}
+        >
+          <mesh position={[0, -colliderRadius * 0.7, -controlShellDistance]}>
+            <boxGeometry args={[largeControlWidth, largeControlHeight, CONTROL_ZONE_DEPTH]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+        </Interactable>
+
+        <Interactable
+          id="moon-rotate-left"
+          interactionText="月を左へ回す"
+          onInteract={rotateMoonLeft}
+        >
+          <mesh position={[-colliderRadius * 0.74, 0, -controlShellDistance]}>
+            <boxGeometry args={[sideControlWidth, sideControlHeight, CONTROL_ZONE_DEPTH]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+        </Interactable>
+
+        <Interactable
+          id="moon-rotate-right"
+          interactionText="月を右へ回す"
+          onInteract={rotateMoonRight}
+        >
+          <mesh position={[colliderRadius * 0.74, 0, -controlShellDistance]}>
+            <boxGeometry args={[sideControlWidth, sideControlHeight, CONTROL_ZONE_DEPTH]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+        </Interactable>
+
+        <Interactable
+          id="moon-scale-down"
+          interactionText="月を縮小"
+          onInteract={scaleMoonDown}
+        >
+          <mesh position={[-colliderRadius * 0.5, colliderRadius * 0.45, -controlShellDistance]}>
+            <boxGeometry args={[cornerControlSize, cornerControlSize, CONTROL_ZONE_DEPTH]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+        </Interactable>
+
+        <Interactable
+          id="moon-scale-up"
+          interactionText="月を拡大"
+          onInteract={scaleMoonUp}
+        >
+          <mesh position={[colliderRadius * 0.5, colliderRadius * 0.45, -controlShellDistance]}>
+            <boxGeometry args={[cornerControlSize, cornerControlSize, CONTROL_ZONE_DEPTH]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+        </Interactable>
+      </group>
 
       <group ref={moonRigRef} position={DEFAULT_CLOSE_VIEW_OFFSET}>
         <MoonSurface

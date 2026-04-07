@@ -2,7 +2,7 @@
   "world": {
     "distDir": "./dist",
     "title": "Luna Atlas",
-    "description": "Shared lunar observatory with a central moon, an equator viewing deck, and synchronized direct rotation and scale interaction. Lunar color and elevation textures adapted from NASA's Scientific Visualization Studio CGI Moon Kit, visualized by Ernie Wright, using LRO LOLA and LROC WAC mosaic data.",
+    "description": "Shared lunar observatory with a central moon, dual equator ring walkways, and synchronized direct rotation and scale interaction. Lunar color and elevation textures adapted from NASA's Scientific Visualization Studio CGI Moon Kit, visualized by Ernie Wright, using LRO LOLA and LROC WAC mosaic data. Space backdrop adapted from NASA SVS An Elsewhere Starfield.",
     "thumbnailPath": "moon-thumbnail.jpg",
     "buildCommand": "npm run build",
     "ignore": [
