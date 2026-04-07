@@ -16,7 +16,7 @@ dist
 .DS_Store
 Thumbs.db
 *.crdownload
-vite-dev*.log
+vite-*.log
 
 # XRift
 .xrift

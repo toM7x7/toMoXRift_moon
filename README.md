@@ -1,6 +1,6 @@
-# Luna Drift
+# Luna Atlas
 
-Low-gravity moon walk XRift world with a rotating lunar shell, disabled infinite jump, and a procedural starfield.
+Shared XRift moon observatory with a central lunar model, an equator-line viewing deck, synchronized model rotation/scale, and a procedural starfield.
 
 ## Local Development
 
@@ -15,6 +15,14 @@ npm run dev
 npm run typecheck
 npm run build
 ```
+
+## Interaction
+
+- Spawn onto one section of the equator deck and face the shared moon model.
+- Drag the moon directly to rotate it.
+- Use the mouse wheel to scale the moon.
+- Arrow keys also rotate the shared moon, and `-` / `=` scale it without any in-world UI.
+- Rotation and scale are synchronized through XRift instance state for multiplayer sessions.
 
 ## Texture Workflow
 

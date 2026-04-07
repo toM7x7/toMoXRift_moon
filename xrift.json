@@ -1,8 +1,8 @@
 {
   "world": {
     "distDir": "./dist",
-    "title": "Luna Drift",
-    "description": "Low-gravity moon walk across a rotating lunar shell with a simple starfield backdrop",
+    "title": "Luna Atlas",
+    "description": "Shared lunar observatory with a central moon, an equator viewing deck, and synchronized direct rotation and scale interaction",
     "thumbnailPath": "moon-thumbnail.jpg",
     "buildCommand": "npm run build",
     "ignore": [
@@ -28,8 +28,8 @@
       "allowInfiniteJump": false
     },
     "camera": {
-      "near": 0.05,
-      "far": 1600
+      "near": 0.02,
+      "far": 1800
     }
   }
 }
