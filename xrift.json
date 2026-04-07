@@ -1,0 +1,35 @@
+{
+  "world": {
+    "distDir": "./dist",
+    "title": "Luna Drift",
+    "description": "Low-gravity moon walk across a rotating lunar shell with a simple starfield backdrop",
+    "thumbnailPath": "moon-thumbnail.jpg",
+    "buildCommand": "npm run build",
+    "ignore": [
+      "**/.DS_Store",
+      "**/Thumbs.db",
+      "**/*.js.map",
+      "**/.gitkeep",
+      "**/index.html",
+      "**/__federation_shared_@react-three/drei-*.js",
+      "**/__federation_shared_@react-three/fiber-*.js",
+      "**/__federation_shared_@react-three/rapier-*.js",
+      "**/__federation_shared_@xrift/world-components-*.js",
+      "**/__federation_shared_three-*.js",
+      "**/__federation_shared_react-*.js",
+      "**/__federation_shared_react-dom-*.js",
+      "**/__federation_shared_react-dom/client-*.js",
+      "**/__federation_shared_react/jsx-runtime-*.js",
+      "**/rapier.es-*.js",
+      "**/hls-*.js"
+    ],
+    "physics": {
+      "gravity": 1.635,
+      "allowInfiniteJump": false
+    },
+    "camera": {
+      "near": 0.05,
+      "far": 1600
+    }
+  }
+}

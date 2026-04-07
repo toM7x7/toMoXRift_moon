@@ -1,0 +1,12 @@
+{
+  "sourcePath": "assets/source/ldem_64.tif",
+  "minKm": -9.114500045776367,
+  "maxKm": 10.757000923156738,
+  "rangeKm": 19.871500968933105,
+  "referenceRadiusKm": 1737.4,
+  "displacementExaggeration": 3.0,
+  "runtimeResolution": [
+    2048,
+    1024
+  ]
+}

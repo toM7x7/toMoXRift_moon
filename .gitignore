@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+
+# Build
+dist
+
+# Environment
+.env
+.env.local
+
+# Editor
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+*.crdownload
+vite-dev*.log
+
+# XRift
+.xrift
+
+# Local source imagery
+assets/source/*.tif
+plane2sphere.0220_print.jpg
