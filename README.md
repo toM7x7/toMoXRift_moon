@@ -32,6 +32,15 @@ npm run build
 - The runtime height map is generated to `public/moon-height-runtime.png`.
 - Replace the runtime image later without touching code when the final download is ready.
 
+## Credits
+
+- Please credit this world's moon texture source to NASA's Scientific Visualization Studio.
+- Source page: `CGI Moon Kit`, released September 6, 2019 and updated January 9, 2026.
+- Visualizer: Ernie Wright (USRA).
+- Scientist: Noah Petro (NASA/GSFC).
+- Datasets used: LRO LOLA DEM and LROC WAC Color Mosaic (Natural Color Hapke Normalized WAC Mosaic).
+- The NASA source maps are optimized for aesthetics, not scientific analysis.
+
 ## Upload To XRift
 
 ```bash
